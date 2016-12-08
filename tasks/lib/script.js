@@ -192,11 +192,11 @@ exports.init = function(grunt) {
         return [{id: id}];
       }
 
-      var fpath = iduri.appendext(alias);
+      var file = iduri.appendext(alias);
 
-      var fbase;
+      var fbase,fpath;
       options.paths.some(function(base) {
-        var filepath = path.join(base, fpath);
+        var filepath = path.join(base, file);
         if (grunt.file.exists(filepath)) {
           grunt.log.verbose.writeln('find module "' + filepath + '"');
           fbase = base;
@@ -303,11 +303,28 @@ exports.init = function(grunt) {
         deps = grunt.util._.chain(deps)
           .flatten()
           .filter(function(item) {return typeof item !== 'undefined'})
-          .uniq(function(item) {return item.path})
+          //.uniq(function(item) {return item.path})
           .each(function(item) {
             if (item.relative) item.id = relative(path, item.path);
           })
           .value();
+        
+        // 上面.uniq去重是有问题的，依赖的 id 没有 path 并不能扔掉
+        var _deps = [],
+            _idsCache = {};
+        
+        deps.forEach(function(item) {
+          item.id = unixy(item.id);
+          if (!(item.id in _idsCache)) {
+            _idsCache[item.id] = 1;
+            _deps.push(item);
+            
+          }
+        });
+        
+        deps = _deps;
+        _idsCache = null;
+        
         grunt.log.verbose.writeln(deps.length ?
           'found dependencies ' + deps : 'found no dependencies');
       }
